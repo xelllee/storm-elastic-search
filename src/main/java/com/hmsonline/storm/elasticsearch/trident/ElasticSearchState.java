@@ -69,28 +69,34 @@ public class ElasticSearchState implements State {
             String indexName = mapper.mapToIndex(tuple);
             String type = mapper.mapToType(tuple);
             String key = mapper.mapToKey(tuple);
-            Map<String, Object> data = mapper.mapToData(tuple);
+            String data = mapper.mapToData(tuple);
+
+
             String parentId = mapper.mapToParentId(tuple);
 
-            if (!existingIndex.contains(indexName)
-                    && !client.admin().indices().exists(new IndicesExistsRequest(indexName)).actionGet().isExists()) {
+            if (!existingIndex.contains(indexName) && !client.admin().indices().exists(new IndicesExistsRequest(indexName)).actionGet().isExists())
+            {
                 createIndex(bulkRequest, indexName, mapper.mapToIndexSettings(tuple));
                 createMapping(bulkRequest, indexName, type, mapper.mapToMappingSettings(tuple));
                 existingIndex.add(indexName);
             }
-            if (StringUtils.isBlank(parentId)) {
+            if (StringUtils.isBlank(parentId))
+            {
                 bulkRequest.add(client.prepareIndex(indexName, type, key).setSource(data));
+
             } else {
                 LOGGER.debug("parent: " + parentId);
                 bulkRequest.add(client.prepareIndex(indexName, type, key).setSource(data).setParent(parentId));
             }
         }
 
+
         try {
             BulkResponse bulkResponse = bulkRequest.execute().actionGet();
             if (bulkResponse.hasFailures()) {
                 // Index failed. Retry!
-                throw new FailedException("Cannot create index via ES: " + bulkResponse.buildFailureMessage());
+               // throw new FailedException("Cannot create index via ES: " + bulkResponse.buildFailureMessage());
+                LOGGER.error("Cannot create index via ES: " + bulkResponse.buildFailureMessage());
             }
         } catch (ElasticSearchException e) {
             StormElasticSearchUtils.handleElasticSearchException(getClass(), e);
